@@ -1,9 +1,13 @@
 import * as PIXI from "pixi.js";
 import { Key } from "./key";
 
+import * as io from "socket.io-client";
+
 import barImage from "./assets/bar.png";
 import wallImage from "./assets/wall.png";
 import ballImage from "./assets/ball.png";
+
+const SERVER_URL = "http://localhost:3000";
 
 class BallState {
     vx: number = 5;
@@ -51,19 +55,23 @@ const arrowUp = new Key("ArrowUp");
 const arrowDown = new Key("ArrowDown");
 
 export class Main {
-    private static readonly GAME_WIDTH = 800;
-    private static readonly GAME_HEIGHT = 600;
+    private static readonly GAME_WIDTH = 1024;
+    private static readonly GAME_HEIGHT = 768;
+
+    private socket: SocketIOClient.Socket;
 
     private app: PIXI.Application | undefined;
     private ballState: BallState = new BallState();
 
     constructor() {
+        this.socket = io.connect(SERVER_URL);
         window.onload = (): void => {
             this.startLoadingAssets();
         };
     }
 
     private startLoadingAssets(): void {
+        this.socket.emit("message", "connected");
         const loader = PIXI.Loader.shared;
         loader.add("bar", barImage);
         loader.add("wall", wallImage);
@@ -115,9 +123,11 @@ export class Main {
         ball.x += this.ballState.vx * delta;
         ball.y += this.ballState.vy * delta;
         if (arrowUp.isDown) {
+            this.socket.emit("input", "up");
             barLeft.position.y -= Main.GAME_HEIGHT * 0.01 * delta;
         }
         if (arrowDown.isDown) {
+            this.socket.emit("input", "down");
             barLeft.position.y += Main.GAME_HEIGHT * 0.01 * delta;
         }
 
@@ -139,9 +149,9 @@ export class Main {
 
         document.body.appendChild(this.app.view);
 
-        this.app.renderer.resize(window.innerWidth, window.innerHeight);
-        this.app.stage.scale.x = window.innerWidth / Main.GAME_WIDTH;
-        this.app.stage.scale.y = window.innerHeight / Main.GAME_HEIGHT;
+        //this.app.renderer.resize(window.innerWidth, window.innerHeight);
+        //this.app.stage.scale.x = window.innerWidth / Main.GAME_WIDTH;
+        //this.app.stage.scale.y = window.innerHeight / Main.GAME_HEIGHT;
 
         window.addEventListener("resize", this.onResize.bind(this));
     }
@@ -151,9 +161,9 @@ export class Main {
             return;
         }
 
-        this.app.renderer.resize(window.innerWidth, window.innerHeight);
-        this.app.stage.scale.x = window.innerWidth / Main.GAME_WIDTH;
-        this.app.stage.scale.y = window.innerHeight / Main.GAME_HEIGHT;
+        //this.app.renderer.resize(window.innerWidth, window.innerHeight);
+        //this.app.stage.scale.x = window.innerWidth / Main.GAME_WIDTH;
+        //this.app.stage.scale.y = window.innerHeight / Main.GAME_HEIGHT;
     }
 
     private getBar(): PIXI.Sprite {
